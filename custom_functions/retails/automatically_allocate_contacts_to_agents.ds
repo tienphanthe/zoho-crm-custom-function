@@ -1,74 +1,67 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2870
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+// ==========================================
+// MỤC ĐÍCH: TỰ ĐỘNG PHÂN BỔ CONTACT CHO AGENT TRÊN PORTAL THEO CƠ CHẾ ROUND-ROBIN
+// TRIGGER: Workflow Rules kích hoạt khi Contact mới được tạo hoặc cập nhật trường Store
+// ==========================================
 
-\f0\fs24 \cf0 // ==========================================\
-// M\uc0\u7908 C \u272 \'cdCH: T\u7920  \u272 \u7896 NG PH\'c2N B\u7892  CONTACT CHO AGENT TR\'caN PORTAL THEO C\u416  CH\u7870  ROUND-ROBIN\
-// TRIGGER: Workflow Rules k\'edch ho\uc0\u7841 t khi Contact m\u7899 i \u273 \u432 \u7907 c t\u7841 o ho\u7863 c c\u7853 p nh\u7853 t tr\u432 \u7901 ng Store\
-// ==========================================\
-\
-// 1. L\uc0\u7844 Y TH\'d4NG TIN STORE T\u7914  CONTACT HI\u7878 N T\u7840 I\
-contactStore = ifnull(input.contact_store_field, ""); \
-\
-// Ki\uc0\u7875 m tra n\u7871 u Contact kh\'f4ng c\'f3 th\'f4ng tin Store th\'ec d\u7915 ng script \u273 \u7875  tr\'e1nh l\u7895 i h\u7879  th\u7889 ng\
-if(contactStore == "")\
-\{\
-	info "Kh\'f4ng t\'ecm th\uc0\u7845 y th\'f4ng tin Store tr\'ean Contact n\'e0y.";\
-	return;\
-\}\
-\
-// 2. T\'ccM KI\uc0\u7870 M C\'c1C AGENT THU\u7896 C STORE N\'c0Y TRONG CUSTOM MODULE "STORE_AGENTS"\
-// \uc0\u272 i\u7873 u ki\u7879 n l\u7885 c: Store tr\'f9ng kh\u7899 p v\'e0 tr\u7841 ng th\'e1i Agent \u273 ang ho\u7841 t \u273 \u7897 ng (Active)\
-searchRecords = zoho.crm.searchRecords("Store_Agents", "(Store:equals:" + contactStore + " and Status:equals:Active)");\
-\
-// N\uc0\u7871 u kh\'f4ng t\'ecm th\u7845 y Agent n\'e0o thu\u7897 c Store n\'e0y, h\u7879  th\u7889 ng s\u7869  ghi log v\'e0 d\u7915 ng l\u7841 i\
-if(searchRecords.size() == 0)\
-\{\
-	info "Kh\'f4ng t\'ecm th\uc0\u7845 y nh\'e2n vi\'ean b\'e1n h\'e0ng n\'e0o thu\u7897 c c\u7917 a h\'e0ng: " + contactStore;\
-	return;\
-\}\
-\
-// 3. THU\uc0\u7852 T TO\'c1N ROUND-ROBIN: T\'ccM AGENT C\'d3 S\u7888  L\u431 \u7906 T NH\u7852 N KH\'c1CH \'cdT NH\u7844 T\
-// Kh\uc0\u7903 i t\u7841 o c\'e1c bi\u7871 n \u273 \u7875  t\'ecm ra Agent t\u7889 i \u432 u nh\u7845 t\
-selectedAgent = Map();\
-minLeadsAssigned = 99999999; // G\'e1n m\uc0\u7897 t con s\u7889  l\u7899 n l\'e0m m\u7889 c so s\'e1nh ban \u273 \u7847 u\
-\
-for each  agent in searchRecords\
-\{\
-	// L\uc0\u7845 y s\u7889  l\u432 \u7907 ng kh\'e1ch h\'e0ng m\'e0 Agent n\'e0y \u273 \'e3 t\u7915 ng \u273 \u432 \u7907 c h\u7879  th\u7889 ng ph\'e2n b\u7893 \
-	assignedCount = ifnull(agent.get("Assigned_Count"), 0).toNumber();\
-	\
-	// N\uc0\u7871 u s\u7889  l\u432 \u7907 t c\u7911 a Agent n\'e0y nh\u7887  h\u417 n m\u7889 c hi\u7879 n t\u7841 i, ch\u7885 n Agent n\'e0y l\'e0m ng\u432 \u7901 i nh\u7853 n ti\u7871 p theo\
-	if(assignedCount < minLeadsAssigned)\
-	\{\
-		minLeadsAssigned = assignedCount;\
-		selectedAgent = agent;\
-	\}\
-\}\
-\
-// L\uc0\u7845 y th\'f4ng tin \u273 \u7883 nh danh (ID v\'e0 Name) c\u7911 a Agent \u273 \u432 \u7907 c ch\u7885 n sau khi qu\'e9t qua danh s\'e1ch\
-selectedAgentId = selectedAgent.get("id");\
-selectedAgentName = selectedAgent.get("Name");\
-\
-// 4. C\uc0\u7852 P NH\u7852 T TH\'d4NG TIN AGENT \u272 \u431 \u7906 C CH\u7884 N V\'c0O CONTACT\
-// Ch\'fang ta l\uc0\u432 u t\'ean/ID Agent v\'e0o c\'e1c custom fields tr\'ean Contact \u273 \u7875  Microsoft Power Pages \u273 \u7891 ng b\u7897  v\u7873 \
-updateContactMap = Map();\
-updateContactMap.put("Assigned_Portal_Agent_ID", selectedAgentId);\
-updateContactMap.put("Assigned_Portal_Agent_Name", selectedAgentName);\
-\
-// Th\uc0\u7921 c thi l\u7879 nh c\u7853 p nh\u7853 t d\u7919  li\u7879 u Contact trong Zoho CRM\
-updateContactResponse = zoho.crm.updateRecord("Contacts", input.contact_id, updateContactMap);\
-info "\uc0\u272 \'e3 g\'e1n Contact cho Agent: " + selectedAgentName;\
-\
-// 5. C\uc0\u7852 P NH\u7852 T L\u7840 I S\u7888  L\u431 \u7906 T (ASSIGNED COUNT) CHO AGENT TRONG CUSTOM MODULE\
-// T\uc0\u259 ng s\u7889  l\u432 \u7907 t nh\u7853 n kh\'e1ch c\u7911 a Agent \u273 \u432 \u7907 c ch\u7885 n l\'ean 1 \u273 \u417 n v\u7883  \u273 \u7875  ph\u7909 c v\u7909  cho l\u432 \u7907 t ph\'e2n b\u7893  sau\
-newCount = minLeadsAssigned + 1;\
-updateAgentMap = Map();\
-updateAgentMap.put("Assigned_Count", newCount);\
-\
-// Th\uc0\u7921 c thi l\u7879 nh c\u7853 p nh\u7853 t l\u7841 i Custom Module Store Agents\
-updateAgentResponse = zoho.crm.updateRecord("Store_Agents", selectedAgentId, updateAgentMap);\
-info "\uc0\u272 \'e3 c\u7853 p nh\u7853 t s\u7889  l\u432 \u7907 t nh\u7853 n kh\'e1ch m\u7899 i cho Agent: " + newCount;}
+// 1. LẤY THÔNG TIN STORE TỪ CONTACT HIỆN TẠI
+contactStore = ifnull(input.contact_store_field, ""); 
+
+// Kiểm tra nếu Contact không có thông tin Store thì dừng script để tránh lỗi hệ thống
+if(contactStore == "")
+{
+	info "Không tìm thấy thông tin Store trên Contact này.";
+	return;
+}
+
+// 2. TÌM KIẾM CÁC AGENT THUỘC STORE NÀY TRONG CUSTOM MODULE "STORE_AGENTS"
+// Điều kiện lọc: Store trùng khớp và trạng thái Agent đang hoạt động (Active)
+searchRecords = zoho.crm.searchRecords("Store_Agents", "(Store:equals:" + contactStore + " and Status:equals:Active)");
+
+// Nếu không tìm thấy Agent nào thuộc Store này, hệ thống sẽ ghi log và dừng lại
+if(searchRecords.size() == 0)
+{
+	info "Không tìm thấy nhân viên bán hàng nào thuộc cửa hàng: " + contactStore;
+	return;
+}
+
+// 3. THUẬT TOÁN ROUND-ROBIN: TÌM AGENT CÓ SỐ LƯỢT NHẬN KHÁCH ÍT NHẤT
+// Khởi tạo các biến để tìm ra Agent tối ưu nhất
+selectedAgent = Map();
+minLeadsAssigned = 99999999; // Gán một con số lớn làm mốc so sánh ban đầu
+
+for each  agent in searchRecords
+{
+	// Lấy số lượng khách hàng mà Agent này đã từng được hệ thống phân bổ
+	assignedCount = ifnull(agent.get("Assigned_Count"), 0).toNumber();
+	
+	// Nếu số lượt của Agent này nhỏ hơn mốc hiện tại, chọn Agent này làm người nhận tiếp theo
+	if(assignedCount < minLeadsAssigned)
+	{
+		minLeadsAssigned = assignedCount;
+		selectedAgent = agent;
+	}
+}
+
+// Lấy thông tin định danh (ID và Name) của Agent được chọn sau khi quét qua danh sách
+selectedAgentId = selectedAgent.get("id");
+selectedAgentName = selectedAgent.get("Name");
+
+// 4. CẬP NHẬT THÔNG TIN AGENT ĐƯỢC CHỌN VÀO CONTACT
+// Chúng ta lưu tên/ID Agent vào các custom fields trên Contact để Microsoft Power Pages đồng bộ về
+updateContactMap = Map();
+updateContactMap.put("Assigned_Portal_Agent_ID", selectedAgentId);
+updateContactMap.put("Assigned_Portal_Agent_Name", selectedAgentName);
+
+// Thực thi lệnh cập nhật dữ liệu Contact trong Zoho CRM
+updateContactResponse = zoho.crm.updateRecord("Contacts", input.contact_id, updateContactMap);
+info "Đã gán Contact cho Agent: " + selectedAgentName;
+
+// 5. CẬP NHẬT LẠI SỐ LƯỢT (ASSIGNED COUNT) CHO AGENT TRONG CUSTOM MODULE
+// Tăng số lượt nhận khách của Agent được chọn lên 1 đơn vị để phục vụ cho lượt phân bổ sau
+newCount = minLeadsAssigned + 1;
+updateAgentMap = Map();
+updateAgentMap.put("Assigned_Count", newCount);
+
+// Thực thi lệnh cập nhật lại Custom Module Store Agents
+updateAgentResponse = zoho.crm.updateRecord("Store_Agents", selectedAgentId, updateAgentMap);
+info "Đã cập nhật số lượt nhận khách mới cho Agent: " + newCount;
