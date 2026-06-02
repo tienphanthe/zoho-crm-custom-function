@@ -1,6 +1,7 @@
 // ==========================================
 // MỤC ĐÍCH: TỰ ĐỘNG PHÂN BỔ CONTACT CHO AGENT TRÊN PORTAL THEO CƠ CHẾ ROUND-ROBIN
 // TRIGGER: Workflow Rules kích hoạt khi Contact mới được tạo hoặc cập nhật trường Store
+// YÊU CẦU: Cần tạo một Custom Module phụ trợ gọi là Store Agents (để lưu danh sách 1000 nhân viên bán hàng từ Microsoft Power Pages và số lượt đã nhận khách của họ)
 // ==========================================
 
 // 1. LẤY THÔNG TIN STORE TỪ CONTACT HIỆN TẠI
