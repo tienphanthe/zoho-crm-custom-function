@@ -8,7 +8,7 @@ void automation.find_and_merge_notification(int leadId)
         // Khởi tạo các biến cấu hình cho API Timeline
         apiUrl = "https://www.zohoapis.com/crm/v3/Leads/" + leadIdStr + "/__timeline";
         
-        // Thực thi gọi API nội bộ bằng cú pháp rút gọn an toàn
+        // Thực thi gọi API nội bộ
         timelineResponse = invokeurl
         [
             url :apiUrl
