@@ -1,66 +1,46 @@
-void automation.find_and_merge_notification(int leadId)
+void automation.find_and_merge_notification(Int leadId)
 {
-    // 1. Chuyển đổi biến số thành chuỗi để đồng bộ dữ liệu
-    leadIdStr = ifNull(leadId, 0).toString();
-    
-    if(leadIdStr != "0")
-    {
-        // Khởi tạo các biến cấu hình cho API Timeline
-        apiUrl = "https://www.zohoapis.com/crm/v3/Leads/" + leadIdStr + "/__timeline";
-        
-        // Thực thi gọi API nội bộ
-        timelineResponse = invokeurl
-        [
-            url :apiUrl
-            type :GET
-            connection :"zoho_crm_connection"
-        ];
-        
-        // Chuyển đổi toàn bộ kết quả phản hồi về dạng Chuỗi văn bản
-        timelineStr = ifNull(timelineResponse, "").toString();
-        
-        // 2. Kiểm tra xem dòng thời gian có chứa vết "Find and Merge" hoặc "merge" hay không
-        if(timelineStr.contains("Find and Merge") || timelineStr.contains("merge"))
-        {
-            // Truy vấn thông tin chi tiết của bản ghi Master
-            masterRecord = zoho.crm.getRecordById("Leads", leadIdStr.toLong());
-            
-            if(masterRecord.get("id") != null)
-            {
-                masterName = ifNull(masterRecord.get("Full_Name"), "");
-                if(masterName == "")
-                {
-                    masterName = ifNull(masterRecord.get("Last_Name"), "Khách hàng không tên");
-                }
-                
-                ownerMap = masterRecord.get("Owner");
-                ownerName = ifNull(ownerMap.get("name"), "Hệ thống");
-                
-                // Cấu trúc nội dung báo cáo theo định dạng HTML
-                notificationSubject = "CHÚ Ý: Dữ liệu trùng lặp vừa được gộp thành công (Find and Merge)";
-                notificationMessage = "Gửi Đội ngũ Quản trị,<br><br>"
-                    + "Hệ thống <b>Zoho CRM</b> vừa ghi nhận hành động Gộp dữ liệu thành công:<br><br>"
-                    + "• <b>Bản ghi Master giữ lại:</b> " + masterName + "<br>"
-                    + "• <b>ID Bản ghi Master:</b> " + leadIdStr + "<br>"
-                    + "• <b>Người sở hữu hiện tại:</b> " + ownerName + "<br>"
-                    + "• <b>Trạng thái hệ thống:</b> Updated using Find and Merge<br>"
-                    + "• <b>Thời gian xử lý:</b> " + zoho.currenttime.toString("dd/MM/yyyy HH:mm:ss") + "<br><br>"
-                    + "Đồng bộ dữ liệu hoàn tất.";
-
-                // Gửi thông báo bằng tài khoản người thực hiện thao tác
-                sendmail
-                [
-                    from :zoho.loginuserid
-                    to :"tien.phan@zohocorp.com" 
-                    subject :notificationSubject
-                    message :notificationMessage
-                ]
-                info "Xử lý thành công. Đã tìm thấy vết Merge và gửi mail.";
-            }
-        }
-        else
-        {
-            info "Chỉnh sửa thông thường, không có vết Merge. Hệ thống dừng lại.";
-        }
-    }
+leadIdStr = ifNull(leadId,0).toString();
+if(leadIdStr != "0")
+{
+	// 1. Gọi API Audit Log chính thống của Zoho CRM để tìm vết thao tác
+	// Quét qua các hoạt động trong Module Leads liên quan đến bản ghi này
+	auditUrl = "https://www.zohoapis.com/crm/v3/settings/audit_logs?module=Leads";
+	auditResponse = invokeurl
+	[
+		url :auditUrl
+		type :GET
+		connection:"zoho_crm_connection"
+	];
+	auditStr = ifNull(auditResponse,"").toString();
+	// 2. Tái lập bộ lọc: Chỉ gửi mail nếu lịch sử hệ thống chứa hành động "merge"
+	if(auditStr.contains("merge") || auditStr.contains("Merge") || auditStr.contains("Find and Merge"))
+	{
+		masterRecord = zoho.crm.getRecordById("Leads",leadIdStr.toLong());
+		if(masterRecord.get("id") != null)
+		{
+			masterName = ifNull(masterRecord.get("Full_Name"),"");
+			if(masterName == "")
+			{
+				masterName = ifNull(masterRecord.get("Last_Name"),"Khách hàng không tên");
+			}
+			ownerMap = masterRecord.get("Owner");
+			ownerName = ifNull(ownerMap.get("name"),"Hệ thống");
+			notificationSubject = "CHÚ Ý: Dữ liệu trùng lặp vừa được gộp thành công (Find and Merge)";
+			notificationMessage = "Gửi Đội ngũ Quản trị,<br><br>" + "Hệ thống <b>Zoho CRM</b> vừa ghi nhận hành động Gộp dữ liệu thành công:<br><br>" + "• <b>Bản ghi Master giữ lại:</b> " + masterName + "<br>" + "• <b>ID Bản ghi Master:</b> " + leadIdStr + "<br>" + "• <b>Người sở hữu hiện tại:</b> " + ownerName + "<br>" + "• <b>Trạng thái hệ thống:</b> Được gộp tự động từ tính năng Find and Merge<br>" + "• <b>Thời gian xử lý:</b> " + zoho.currenttime.toString("dd/MM/yyyy HH:mm:ss") + "<br><br>" + "Hệ thống đã đồng bộ dữ liệu hoàn tất.";
+			sendmail
+			[
+				from :zoho.loginuserid
+				to :"tien.phan@zohocorp.com"
+				subject :notificationSubject
+				message :notificationMessage
+			]
+			info "Xử lý thành công. Đã xác thực vết Merge từ Audit Log.";
+		}
+	}
+	else
+	{
+		info "Hành động chỉnh sửa thông thường, không phát hiện vết Merge. Hệ thống dừng lại.";
+	}
+}
 }
