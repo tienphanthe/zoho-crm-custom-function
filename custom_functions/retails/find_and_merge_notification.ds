@@ -1,0 +1,31 @@
+void automation.find_and_merge_notification(int leadId)
+{
+// Chuyển đổi biến số thành chuỗi một cách an toàn
+leadIdStr = ifNull(leadId,0).toString();
+// Nếu leadId hợp lệ (khác "0"), hệ thống sẽ thực thi logic
+if(leadIdStr != "0")
+{
+	// Thực hiện truy vấn thông tin bản ghi từ Module Leads
+	masterRecord = zoho.crm.getRecordById("Leads",leadIdStr.toLong());
+	if(masterRecord.get("id") != null)
+	{
+		masterName = ifNull(masterRecord.get("Full_Name"),"");
+		if(masterName == "")
+		{
+			masterName = ifNull(masterRecord.get("Last_Name"),"Khách hàng không tên");
+		}
+		ownerMap = masterRecord.get("Owner");
+		ownerName = ifNull(ownerMap.get("name"),"Hệ thống");
+		notificationSubject = "CHÚ Ý: Dữ liệu trùng lặp vừa được gộp thành công (Find and Merge)";
+		notificationMessage = "Gửi Đội ngũ Quản trị,<br><br>" + "Hệ thống <b>Zoho CRM</b> vừa ghi nhận hành động Gộp dữ liệu thành công:<br><br>" + "• <b>Bản ghi Master giữ lại:</b> " + masterName + "<br>" + "• <b>ID Bản ghi Master:</b> " + leadIdStr + "<br>" + "• <b>Người sở hữu hiện tại:</b> " + ownerName + "<br>" + "• <b>Trạng thái hệ thống:</b> Updated using Find and Merge<br>" + "• <b>Thời gian xử lý:</b> " + zoho.currenttime.toString("dd/MM/yyyy HH:mm:ss") + "<br><br>" + "Hệ thống đã điều hướng và đồng bộ dữ liệu hoàn tất.";
+		sendmail
+		[
+			from :zoho.loginuserid
+			to :"quantrivien@congty.com"
+			subject :notificationSubject
+			message :notificationMessage
+		]
+		info "Xử lý thành công.";
+	}
+}
+}
