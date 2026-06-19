@@ -18,6 +18,7 @@ first_names = [
     "Joe", "Mason", "Lucas", "Randy", "Willie", "Wayne", "Vincent", "Caleb", "Albert", "Luke", "Isaac", "Bradley", "Cameron"
 ]
 
+# DECLARE YOUR REQUIRED FIELDS HERE
 # Change mobile prefixes here. 
 phone_prefixes = ["090", "091", "098", "096", "097", "032", "035", "070", "077", "083", "085"]
 # Change mail domain here.
@@ -35,7 +36,7 @@ for _ in range(500):
     first = random.choice(first_names)
     
     # Combine full name to create an email address.
-    full_first_name = f"{middle} {first}"
+    full_first_name = f"{first} {last}"
     
     # Change the name to one without accents to create a standard email address.
     last_clean = unidecode.unidecode(last).lower().replace(" ", "")
@@ -46,6 +47,7 @@ for _ in range(500):
     segment = random.choice(segments)
     tour = random.choice(tour_types)
 
+# DECLARE YOUR REQUIRED FIELD HERE    
 # The data structure will appear in the Excel file.
     data.append({
         "Last Name": last,
